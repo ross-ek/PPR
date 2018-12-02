@@ -4,6 +4,7 @@ import json
 import re
 import datetime as dt
 
+
 ppr_url = 'https://www.propertypriceregister.ie/website/npsra/ppr/npsra-ppr.nsf/Downloads/PPR-ALL.zip/$FILE/PPR-ALL.zip'
 
 # Load that config
@@ -13,10 +14,11 @@ with open('conf\\config.json') as f:
 with open('conf\\street_abbr.json') as f:
      street_abbr = json.load(f)
 
+with open('conf\\county_towns.json') as f:
+     county_towns = json.load(f)
 
 dir_input = config['dir_input']
 dir_output = config['dir_output']
-
 
 def property_age(x):
     """
@@ -69,10 +71,10 @@ def is_apartment(s):
     '''Check string for keyword regex match indicating that address is an appartment'''
    
     is_apt = 'No'
-
-    apt_synomyns = [r'(^|\s|[0-9]|[,.-_()])(FLAT|FLT|FL)([0-9]|\s|S|[,.])',
-                    r'(^|\s|[0-9]|[,.-_()])(FLOOR|FLR|FL)([0-9]|\s|S|[,.])',
-                    r'(^|\s|[0-9]|[,.-_()])(APPARTMENT|APARTMENT|APPART|APART|APT|APP|AP)([0-9]|\s|S|[,.])',
+    #^|\s|[0-9]|[,.-_()]
+    apt_synomyns = [r'(^|\s|[0-9]|[-_().,])(FLAT|FLT|FL)([0-9]|\s|S|[,.])',
+                    r'(^|\s|[0-9]|[-_().,])(FLOOR|FLR|FL)([0-9]|\s|S|[,.])',
+                    r'(^|\s|[0-9]|[-_().,])(APPARTMENT|APARTMENT|APPART|APART|APT|APP|AP)([0-9]|\s|S|[,.])',
                     r'^APART|^APPART']
 
     for i in apt_synomyns:
@@ -94,6 +96,15 @@ def remove_cnty(addr, cnty):
     
     return x
 
+def add_cnty_town(town, cnty):
+
+    x = town
+    
+    if x == '' or pd.isnull(x):
+        x = county_towns[cnty]
+
+    return x
+
 
 def simple_addr(s):
 
@@ -108,11 +119,28 @@ def simple_addr(s):
     x = re.sub('^,', '', x)
     x = re.sub('^APART.*,|^APT.*,|^APPT.*,|^APPAR.*,|^NO ','', x)
     x = re.sub('PO$|P O$|', '' ,x) # post office town (ATHLONE PO)
+    x = re.sub('^[A-Z](\s|,)', '', x)
     x = re.sub('^,', '', x)
     x = x.strip()
+    
 
     for i in street_abbr:
         x = x.replace(i, street_abbr[i])
+
+    return x
+
+
+def get_town(s):
+    
+    x = s.split(',')[-1]
+    x = x.strip()
+
+    for i in street_abbr:
+        x = re.sub('^.*' + street_abbr[i] + '\s', '', x)
+        x = re.sub('^.*' + street_abbr[i] + '$', '', x) # remove anything up to "MAIN RD" etc
+    
+    x = x.strip()
+    x = re.sub('\sTOWN$', '', x)
 
     return x
 
@@ -129,6 +157,7 @@ def import_ppr(f):
     df['Price'] = df['Price'].replace('[€,]', '', regex=True).astype(float)
 
     # General Address Clean Up
+    df['County'] = df['County'].str.upper()
     df['Address'] = df['Address'].str.upper()
     df['Address'] = df['Address'].str.strip()           # trim leading trailing spaces
     df['Address'] = df['Address'].str.replace('  ',' ') # double spaces
@@ -143,18 +172,12 @@ def import_ppr(f):
     df['Is_Apartment'] = df['Address'].apply(is_apartment)
     
     df['Town'] = df['Simple_Address'].apply(get_town)
-    
+
+    df['Town'] = df.apply(lambda x: add_cnty_town(x['Town'], x['County']), axis=1)
+
+    df['lookup'] = df['Town'] + ',' + df['County']
+
     return df
-
-def get_town(s):
-    
-    x = s.split(',')[-1]
-    x = x.strip()
-
-    for i in street_abbr:
-        x = re.sub('^.*' + street_abbr[i] + '\s', '', x)
-
-    return x
 
 
 def main():
