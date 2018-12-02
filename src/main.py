@@ -10,6 +10,9 @@ ppr_url = 'https://www.propertypriceregister.ie/website/npsra/ppr/npsra-ppr.nsf/
 with open('conf\\config.json') as f:
      config = json.load(f)
 
+with open('conf\\street_abbr.json') as f:
+     street_abbr = json.load(f)
+
 
 dir_input = config['dir_input']
 dir_output = config['dir_output']
@@ -49,7 +52,7 @@ def property_size(x):
 
 def get_post_code(df):
     ''' extract post code from address string and combine '''
-    
+   
     rgx_dub = re.compile(r'DUBLIN [0-9]{1,2}')
     df['Post_Code2'] = df['Address'].apply(lambda x: rgx_dub.findall(x)[0] if rgx_dub.search(x) else pd.np.nan )
     df['Post_Code2'] = pd.np.where(df['Address'].str.contains('DUBLIN 6W'), 'DUBLIN 6W', df['Post_Code2'])
@@ -62,14 +65,9 @@ def get_post_code(df):
     return df
 
 
-def simple_addr(s):
-
-    return s.upper()
-
-
 def is_apartment(s):
     '''Check string for keyword regex match indicating that address is an appartment'''
-    
+   
     is_apt = 'No'
 
     apt_synomyns = [r'(^|\s|[0-9]|[,.-_()])(FLAT|FLT|FL)([0-9]|\s|S|[,.])',
@@ -82,6 +80,41 @@ def is_apartment(s):
             is_apt = 'Yes'
 
     return is_apt
+
+
+def remove_cnty(addr, cnty):
+
+    x = addr
+    
+    if addr[-len(cnty):].upper() == cnty.upper():
+
+        x = addr[:-len(cnty)]
+        x = re.sub(',$','',x)
+        x.strip()
+    
+    return x
+
+
+def simple_addr(s):
+
+    re_county = '[,.\s](COUNTY|CO)[,.\s].*$'
+    re_dublin = '[,.\s]DUBLIN$'
+    x = re.sub(re_county, '', s)
+    x = re.sub('[0-9][A-Z]','', x)
+    x = re.sub('[^A-Z,\s]', '', x)
+    x = re.sub('  ', ' ', x)
+    x = x.strip()
+    x = re.sub(re_dublin, '', x)
+    x = re.sub('^,', '', x)
+    x = re.sub('^APART.*,|^APT.*,|^APPT.*,|^APPAR.*,|^NO ','', x)
+    x = re.sub('PO$|P O$|', '' ,x) # post office town (ATHLONE PO)
+    x = re.sub('^,', '', x)
+    x = x.strip()
+
+    for i in street_abbr:
+        x = x.replace(i, street_abbr[i])
+
+    return x
 
 
 def import_ppr(f):
@@ -100,57 +133,43 @@ def import_ppr(f):
     df['Address'] = df['Address'].str.strip()           # trim leading trailing spaces
     df['Address'] = df['Address'].str.replace('  ',' ') # double spaces
     df['Address'] = df['Address'].str.replace(', ',',') # comma spaces
-    
+   
     df = get_post_code(df)
 
     df['Simple_Address'] = df['Address'].apply(simple_addr)
 
+    df['Simple_Address'] = df.apply(lambda x: remove_cnty(x['Simple_Address'], x['County']), axis=1)
+
     df['Is_Apartment'] = df['Address'].apply(is_apartment)
-
-    # # Towns - Remove trailing "county/co/ co.  whatever" or "dublin 1-24". 
-    # re_last_addr = '(,| )COUNTY.*$|(,| )CO[.{1}| {1}].*$|(,| )DUBLIN [0-9]{1,2}$|(,| )DUBLIN$'
-    # df['Address2'] = df['Address2' ].str.replace('[(.| )]$', '', regex=True)
-    # df['Address2'] = df['Address2'].str.replace(re_last_addr, '', regex=True)
-
-    # df['Address2'] = df['Address2'].str.replace('(,| )COUNTY.*$|(,| )CO[.{1}| {1}].*$|(,| )DUBLIN [0-9]{1,2}$|(,| )DUBLIN$', '', regex=True)
-    # df['Address2'] = df['Address2'].str.strip()
-
-    # df['Address2'] = df['Address2'].str.replace(',COUNTY.*$|,CO[.].*$|,DUBLIN [0-9]{1,2}$|,DUBLIN$', '', regex=True)
-    # df['Address2'] = df['Address2'].str.replace(' COUNTY.*$| CO[.].*$| DUBLIN [0-9]{1,2}$| DUBLIN$', '', regex=True) # some down't have commas
     
-    # Asuming town is last string entry
-    #df['Town'] = df['Address2'].str.split(',').str[-1]
-
-    #df['Address2'] = df['Address'].str.replace(', CO\. \w+$', '', regex=True)
-
-    # clean up
+    df['Town'] = df['Simple_Address'].apply(get_town)
     
-
-    # print(df['Address'][312711], '\n',df['Address2'][312711], '\n...')
-    # print(df['Address'][0], '\n',df['Address2'][0], '\n...')
-    # print(df['Address'][19], '\n',df['Address2'][19], '\n...')
-    
-
-
     return df
+
+def get_town(s):
+    
+    x = s.split(',')[-1]
+    x = x.strip()
+
+    for i in street_abbr:
+        x = re.sub('^.*' + street_abbr[i] + '\s', '', x)
+
+    return x
 
 
 def main():
     df_ppr = import_ppr(dir_input + 'PPR-ALL.csv')
-    
+   
     try:
         now = dt.datetime.now()
         df_ppr.to_csv(dir_output + 'output-' + format(now.strftime("%Y%m%d-%H%M")) +'.csv', index=False)
     except Exception as e:
         print('close the file')
         print(str(e))
-    
-    # fn = dir_output + 'output_add' +'.csv'
-    # f = open(fn, 'a')
-    # for i in df_ppr['Address'].unique():
-    #     f.write(i+ '\n') 
-    # f.close()
+   
+    print(df_ppr['Address'][67] + '  --->  ' + df_ppr['Simple_Address'][67] + '  --->  ' + df_ppr['Town'][67])
+    print(df_ppr['Address'][134] + '  --->  ' + df_ppr['Simple_Address'][134] + '  --->  ' + df_ppr['Town'][134])
 
 if __name__ == "__main__":
     sys.exit(main())
-
+    
