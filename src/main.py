@@ -3,7 +3,7 @@ import pandas as pd
 import json
 import re
 import datetime as dt
-
+import fuzzymatcher
 
 ppr_url = 'https://www.propertypriceregister.ie/website/npsra/ppr/npsra-ppr.nsf/Downloads/PPR-ALL.zip/$FILE/PPR-ALL.zip'
 
@@ -19,6 +19,19 @@ with open('conf\\county_towns.json') as f:
 
 dir_input = config['dir_input']
 dir_output = config['dir_output']
+
+
+def import_eircodes(f):
+    df_eirc = pd.read_csv(f)
+    df_eirc = df_eirc[['name', 'county', 'eircode']].drop_duplicates()
+    df_eirc['lookup'] = df_eirc['name'] + ',' +df_eirc['county']
+    df_eirc = df_eirc[['lookup','eircode']]
+    
+    for i in df_eirc:
+        df_eirc[i] = df_eirc[i].str.upper()
+
+    return df_eirc
+
 
 def property_age(x):
     """
@@ -139,6 +152,7 @@ def get_town(s):
         x = re.sub('^.*' + street_abbr[i] + '\s', '', x)
         x = re.sub('^.*' + street_abbr[i] + '$', '', x) # remove anything up to "MAIN RD" etc
     
+    x = re.sub('NEAR(\s|$)', '', x)
     x = x.strip()
     x = re.sub('\sTOWN$', '', x)
 
@@ -181,17 +195,36 @@ def import_ppr(f):
 
 
 def main():
-    df_ppr = import_ppr(dir_input + 'PPR-ALL.csv')
    
+    print(str(dt.datetime.now()) + '  STARTED')
+    
+    df_ppr = import_ppr(dir_input + 'PPR-ALL.csv')
+
+    df_ppr.to_csv(dir_output + 'output-' + format(dt.datetime.now().strftime("%Y%m%d-%H%M")) +'.csv', index=False)
+    #df_ppr = df_ppr.head(24060)
+    print(str(dt.datetime.now()) + '  LOADED PPR DATA')
+
+    df_eirc = import_eircodes(dir_input + 'ie-towns.csv')
+    print(str(dt.datetime.now()) + '  LOADED EIRCODE DATA')
+
+    try:
+        df1 = fuzzymatcher.fuzzy_left_join(df_ppr, df_eirc, left_on = "lookup", right_on = "lookup")
+    except Exception as e:
+        print(str(dt.datetime.now()) + '  IT STOPPED AGAIN')
+        print(str(e))
+        pass
+    
+    print(str(dt.datetime.now()) + '  EIRCODE LOOKUP')
+    
     try:
         now = dt.datetime.now()
-        df_ppr.to_csv(dir_output + 'output-' + format(now.strftime("%Y%m%d-%H%M")) +'.csv', index=False)
+        df1.to_csv(dir_output + 'output_combined-' + format(now.strftime("%Y%m%d-%H%M")) +'.csv', index=False)
     except Exception as e:
         print('close the file')
         print(str(e))
    
-    print(df_ppr['Address'][67] + '  --->  ' + df_ppr['Simple_Address'][67] + '  --->  ' + df_ppr['Town'][67])
-    print(df_ppr['Address'][134] + '  --->  ' + df_ppr['Simple_Address'][134] + '  --->  ' + df_ppr['Town'][134])
+    # print(df_ppr['Address'][67] + '  --->  ' + df_ppr['Simple_Address'][67] + '  --->  ' + df_ppr['Town'][67])
+    # print(df_ppr['Address'][134] + '  --->  ' + df_ppr['Simple_Address'][134] + '  --->  ' + df_ppr['Town'][134])
 
 if __name__ == "__main__":
     sys.exit(main())
