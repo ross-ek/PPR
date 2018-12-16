@@ -1,9 +1,12 @@
-import sys
-import pandas as pd
-import json
 import re
+import sys
+import json
+import pandas as pd
 import datetime as dt
 from fuzzywuzzy import process
+
+# Warnings off for Pandas set
+pd.options.mode.chained_assignment = None 
 
 ppr_url = 'https://www.propertypriceregister.ie/website/npsra/ppr/npsra-ppr.nsf/Downloads/PPR-ALL.zip/$FILE/PPR-ALL.zip'
 
@@ -19,6 +22,7 @@ with open('conf\\county_towns.json') as f:
 
 dir_input = config['dir_input']
 dir_output = config['dir_output']
+tax_rate = config['tax_rate']
 
 
 def import_eircodes(f):
@@ -30,6 +34,19 @@ def import_eircodes(f):
         df_eirc[i] = df_eirc[i].str.upper()
 
     return df_eirc
+
+
+def add_tax(price, rate):
+    '''
+    This function will add the increase the listed price to include it's tax liability. 
+    THis is only applicable for "new build" properties. 
+
+    :param price: numeric
+    :param rate: decimal. The rate of tax to be applied.
+    :return: numeric
+    '''
+
+    return price * rate + price
 
 
 def property_age(x):
@@ -193,6 +210,10 @@ def import_ppr(f):
     df['Is_Apartment'] = df['Address'].apply(is_apartment)
     df['Town'] = df['Simple_Address'].apply(get_town)
     df['Town'] = df.apply(lambda x: add_cnty_town(x['Town'], x['County']), axis=1)
+
+    # Add liable tax to new builds only:
+    df['Price'] = df.apply(lambda x: round(x['Price'] * (1 + tax_rate),2)
+                            if x['VAT_Exclusive']=='Yes' else x['Price'], axis=1)
 
     return df
 
