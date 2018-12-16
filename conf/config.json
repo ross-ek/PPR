@@ -1,4 +1,5 @@
 {
     "dir_input":  "C:\\Users\\ross_\\Documents\\dcu\\CA682\\PPR\\data\\input\\",
-    "dir_output":  "C:\\Users\\ross_\\Documents\\dcu\\CA682\\PPR\\data\\output\\"
+    "dir_output": "C:\\Users\\ross_\\Documents\\dcu\\CA682\\PPR\\data\\output\\",
+    "tax_rate":   0.135
 }
