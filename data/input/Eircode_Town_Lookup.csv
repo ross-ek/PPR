@@ -1,0 +1,140 @@
+Routing Key,Town,County
+A41,Ballyboughal,Dublin
+A42,Garristown,Dublin
+A45,Oldtown,Dublin
+A63,Greystones,Wicklow
+A67,Wicklow,Wicklow
+A75,Castleblayney,Cavan
+A81,Carrickmacross,Cavan
+A82,Kells,Meath
+A83,Enfield,Meath
+A84,Ashbourne,Meath
+A85,Dunshaughlin,Meath
+A86,Dunboyne,Meath
+A91,Dundalk,Louth
+A92,Drogheda,Louth
+A94,Blackrock,Louth
+A96,Glenageary,Dublin
+A98,Bray,Wicklow
+C15,Navan,Meath
+D01,Dublin 1,Dublin
+D02,Dublin 2,Dublin
+D03,Dublin 3,Dublin
+D04,Dublin 4,Dublin
+D05,Dublin 5,Dublin
+D06,Dublin 6,Dublin
+D07,Dublin 7,Dublin
+D08,Dublin 8,Dublin
+D09,Dublin 9,Dublin
+D10,Dublin 10,Dublin
+D11,Dublin 11,Dublin
+D12,Dublin 12,Dublin
+D13,Dublin 13,Dublin
+D14,Dublin 14,Dublin
+D15,Dublin 15,Dublin
+D16,Dublin 16,Dublin
+D17,Dublin 17,Dublin
+D18,Dublin 18,Dublin
+D20,Dublin 20,Dublin
+D22,Dublin 22,Dublin
+D24,Dublin 24,Dublin
+D6W,Dublin 6W,Dublin
+E21,Cahir,Tipperary
+E25,Cashel,Tipperary
+E32,Carrick-On-Suir,Tipperary
+E34,Tipperary,Tipperary
+E41,Thurles,Tipperary
+E45,Nenagh,Tipperary
+E53,Roscrea,Tipperary
+E91,Clonmel,Tipperary
+F12,Claremorris,Mayo
+F23,Castlebar,Mayo
+F26,Ballina,Mayo
+F28,Westport,Mayo
+F31,Ballinrobe,Mayo
+F35,Ballyhaunis,Mayo
+F42,Roscommon,Roscommon
+F45,Castlerea,Roscommon
+F52,Boyle,Roscommon
+F56,Ballymote,Sligo
+F91,Sligo,Sligo
+F92,Letterkenny,Donegal
+F93,Lifford,Donegal
+F94,Donegal,Donegal
+H12,Cavan,Cavan
+H14,Belturbet,Cavan
+H16,Cootehill,Cavan
+H18,Monaghan,Monaghan
+H23,Clones,Cavan
+H53,Ballinasloe,Galway
+H54,Tuam,Galway
+H62,Loughrea,Galway
+H65,Athenry,Galway
+H71,Clifden,Galway
+H91,Galway,Galway
+K32,Balbriggan,Dublin
+K34,Skerries,Dublin
+K36,Malahide,Dublin
+K45,Lusk,Dublin
+K56,Rush,Dublin
+K67,Swords,Dublin
+K78,Lucan,Dublin
+N37,Athlone,Westmeath
+N39,Longford,Longford
+N41,Carrick-On-Shannon,Leitrim
+N91,Mullingar,Westmeath
+P12,Macroom,Cork
+P14,Cork - Crookstown,Cork
+P17,Kinsale,Cork
+P24,Cobh,Cork
+P25,Midleton,Cork
+P31,Ballincollig,Cork
+P32,Cork - Donoughmore,Cork
+P36,Youghal,Cork
+P43,Carrigaline,Cork
+P47,Cork - Dunmanway,Cork
+P51,Mallow,Cork
+P56,Charleville,Cork
+P61,Fermoy,Cork
+P67,Mitchelstown,Cork
+P72,Bandon,Cork
+P75,Bantry,Cork
+P81,Skibbereen,Cork
+P85,Clonakilty,Cork
+R14,Athy,Kildare
+R21,Muine Bheag,Carlow
+R32,Portlaoise,Laoise
+R35,Tullamore,Offaly
+R42,Birr,Offaly
+R45,Edenderry,Offaly
+R51,Kildare,Kildare
+R56,Curragh Camp,Kildare
+R93,Carlow,Carlow
+R95,Kilkenny,Kilkenny
+T12,Ballinhassig,Cork
+T23,Blarney,Cork
+T34,Whitechurch,Cork
+T45,Little Island,Cork
+T56,Watergrasshill,Cork
+V14,Shannon,Clare
+V15,Kilrush,Clare
+V23,Caherciveen,Kerry
+V31,Listowel,Kerry
+V35,Kilmallock,Limerick
+V42,Newcastle West,Limerick
+V92,Tralee,Kerry
+V93,Killarney,Kerry
+V94,Limerick,Limerick
+V95,Ennis,Clare
+W12,Newbridge,Kildare
+W23,Maynooth,Kildare
+W34,Monasterevin,Kildare
+W91,Naas,Kildare
+X35,Dungarvan,Waterford
+X42,Kilmacthomas,Waterford
+X91,Waterford,Waterford
+Y14,Arklow,Wicklow
+Y21,Enniscorthy,Wexford
+Y25,Gorey,Wexford
+Y34,New Ross,Wexford
+Y35,Wexford,Wexford

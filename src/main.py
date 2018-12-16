@@ -3,7 +3,7 @@ import pandas as pd
 import json
 import re
 import datetime as dt
-import fuzzymatcher
+from fuzzywuzzy import process
 
 ppr_url = 'https://www.propertypriceregister.ie/website/npsra/ppr/npsra-ppr.nsf/Downloads/PPR-ALL.zip/$FILE/PPR-ALL.zip'
 
@@ -23,9 +23,8 @@ dir_output = config['dir_output']
 
 def import_eircodes(f):
     df_eirc = pd.read_csv(f)
-    df_eirc = df_eirc[['name', 'county', 'eircode']].drop_duplicates()
-    df_eirc['lookup'] = df_eirc['name'] + ',' +df_eirc['county']
-    df_eirc = df_eirc[['lookup','eircode']]
+    df_eirc = df_eirc[['name', 'postal_town', 'county', 'eircode','province',
+                       'nuts3_region']].drop_duplicates()
     
     for i in df_eirc:
         df_eirc[i] = df_eirc[i].str.upper()
@@ -66,7 +65,12 @@ def property_size(x):
 
 
 def get_post_code(df):
-    ''' extract post code from address string and combine '''
+    ''' extract post code from address string and combine 
+
+    :param df: pandas dataframe
+    :return: pandas dataframe
+    
+    '''
    
     rgx_dub = re.compile(r'DUBLIN [0-9]{1,2}')
     df['Post_Code2'] = df['Address'].apply(lambda x: rgx_dub.findall(x)[0] if rgx_dub.search(x) else pd.np.nan )
@@ -75,13 +79,18 @@ def get_post_code(df):
     df['Post_Code'] = df['Post_Code'].str.upper()
     df['Post_Code'] = df['Post_Code'].str.replace('BAILE .THA CLIATH','DUBLIN', regex=True)
     df['Post_Code'] = df['Post_Code'].str.replace('N. BHAINEANN','', regex=True)
+    df['Post_Code'] = df['Post_Code'].str.replace('[^0-9]','')
+    df['Post_Code'] = df['Post_Code'].apply(lambda x: 'D' + str(x).zfill(2) if not pd.isnull(x) else '')
     df = df.drop(['Post_Code2'], axis=1)
 
     return df
 
 
 def is_apartment(s):
-    '''Check string for keyword regex match indicating that address is an appartment'''
+    '''Check string for keyword regex match indicating that address is an appartment
+    :param s: string
+    :return: string
+    '''
    
     is_apt = 'No'
     #^|\s|[0-9]|[,.-_()]
@@ -180,51 +189,61 @@ def import_ppr(f):
     df = get_post_code(df)
 
     df['Simple_Address'] = df['Address'].apply(simple_addr)
-
     df['Simple_Address'] = df.apply(lambda x: remove_cnty(x['Simple_Address'], x['County']), axis=1)
-
     df['Is_Apartment'] = df['Address'].apply(is_apartment)
-    
     df['Town'] = df['Simple_Address'].apply(get_town)
-
     df['Town'] = df.apply(lambda x: add_cnty_town(x['Town'], x['County']), axis=1)
-
-    df['lookup'] = df['Town'] + ',' + df['County']
 
     return df
 
 
+def match_by_county(df_ppr, df_eircode, county):
+
+    '''
+    split left and right dfs by county for quicker, more accurate matches
+    '''
+
+    df_ppr = df_ppr[df_ppr['County'] == county]
+    df_eircode = df_eircode[df_eircode['county'] == county]
+    #df_ppr['Town2'] = df_ppr['Town'].apply(lambda x: process.extractOne(x, df_eircode['name'])[0])
+
+    unique_towns = df_ppr['Town'].to_frame()
+    list_of_towns_df = unique_towns.drop_duplicates()
+
+    #list_of_towns_df = pd.DataFrame.from_records(list_of_towns_df)
+    list_of_towns_df['best_matched_town'] = list_of_towns_df['Town'].apply(lambda x: process.extractOne(x, df_eircode['name'])[0])
+
+    df_ppr = df_ppr.merge(list_of_towns_df, left_on='Town', right_on='Town', how='left')
+    df_ppr = df_ppr.merge(df_eircode, left_on='best_matched_town', right_on='name', how='left')
+
+    return df_ppr
+
+
+
+
 def main():
    
-    print(str(dt.datetime.now()) + '  STARTED')
+    print(str(dt.datetime.now()) + ' STARTED')
     
     df_ppr = import_ppr(dir_input + 'PPR-ALL.csv')
-
-    df_ppr.to_csv(dir_output + 'output-' + format(dt.datetime.now().strftime("%Y%m%d-%H%M")) +'.csv', index=False)
-    #df_ppr = df_ppr.head(24060)
-    print(str(dt.datetime.now()) + '  LOADED PPR DATA')
+    df_ppr.to_csv(dir_output + 'ppr-' + format(dt.datetime.now().strftime("%Y%m%d-%H%M")) +'.csv', index=False)
 
     df_eirc = import_eircodes(dir_input + 'ie-towns.csv')
-    print(str(dt.datetime.now()) + '  LOADED EIRCODE DATA')
+    df_eirc.to_csv(dir_output + 'eircode-' + format(dt.datetime.now().strftime("%Y%m%d-%H%M")) +'.csv', index=False)
 
-    try:
-        df1 = fuzzymatcher.fuzzy_left_join(df_ppr, df_eirc, left_on = "lookup", right_on = "lookup")
-    except Exception as e:
-        print(str(dt.datetime.now()) + '  IT STOPPED AGAIN')
-        print(str(e))
-        pass
+    df_out = pd.DataFrame()
+
+    for i in county_towns:
+        print(str(dt.datetime.now()) + ' ' + i)
+        df_x = match_by_county(df_ppr, df_eirc, i)
+        df_out = df_out.append(df_x)
+
+    df_out['eircode_pass2'] = df_out['Post_Code'] + df_out['eircode']
+    df_out['eircode_pass2'] = df_out['eircode_pass2'].str[:3]
+
+    df_out.to_csv(dir_output + 'matched-' + format(dt.datetime.now().strftime("%Y%m%d-%H%M")) +'.csv', index=False)
     
-    print(str(dt.datetime.now()) + '  EIRCODE LOOKUP')
-    
-    try:
-        now = dt.datetime.now()
-        df1.to_csv(dir_output + 'output_combined-' + format(now.strftime("%Y%m%d-%H%M")) +'.csv', index=False)
-    except Exception as e:
-        print('close the file')
-        print(str(e))
-   
-    # print(df_ppr['Address'][67] + '  --->  ' + df_ppr['Simple_Address'][67] + '  --->  ' + df_ppr['Town'][67])
-    # print(df_ppr['Address'][134] + '  --->  ' + df_ppr['Simple_Address'][134] + '  --->  ' + df_ppr['Town'][134])
+    print(str(dt.datetime.now()) + ' ' + i)
 
 if __name__ == "__main__":
     sys.exit(main())
